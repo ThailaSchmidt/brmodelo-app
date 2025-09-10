@@ -395,7 +395,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			if (link != null) {
 				link.remove();
 			}
-		} 
+		}
 		ls.selectedElement.model.deleteColumn(index);
 		$rootScope.$broadcast('element:update', ls.selectedElement);
 	}

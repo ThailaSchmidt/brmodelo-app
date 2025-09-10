@@ -46,7 +46,7 @@ app.use("/users", userHandler);
 app.use("/models", modelHandler);
 
 app.get("/", (_, res) => {
-	res.render("index.html");
+	res.sendFile(path.join(__dirname, "../app/index.html"));
 });
 
 module.exports = app;
