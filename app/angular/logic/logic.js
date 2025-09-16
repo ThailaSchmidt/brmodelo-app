@@ -15,6 +15,12 @@ import sidebarControlLogical from "./sidebarControl";
 import iconLogic from  "../components/icons/logic";
 import supportBannersList from "../components/supportBannersList";
 
+import textEditor from "../components/editorDSL";
+import tokens from './dsl/tokens';
+import grammar from "./dsl/grammar.cjs";
+import SemanticInterpreter from "./dsl/interpreter";
+import DiagramGenerator from "./dsl/diagramGenerator"
+
 const controller = function (
 	$rootScope,
 	$stateParams,
@@ -64,6 +70,13 @@ const controller = function (
 
 	ctrl.$onInit = () => {
 		ctrl.setLoading(true);
+
+		ctrl.languageTokens = tokens;
+		ctrl.grammar = grammar;
+		ctrl.SemanticInterpreter = new SemanticInterpreter();
+		ctrl.activeTab = 'textEditor';
+		ctrl.generator = new DiagramGenerator(configs.graph, ctrl.shapeFactory, ctrl.shapeLinker);
+
 		LogicService.buildWorkspace($stateParams.references.modelid, $rootScope.loggeduser, ctrl.stopLoading, $stateParams.references.conversionId);
 	}
 
@@ -275,6 +288,11 @@ const controller = function (
 		preventExitService.cleanup(ctrl)();
 		onExitDeregister();
 	};
+
+	this.interpreter = function (result) {
+		ctrl.semanticInterpreter.execute(result);
+		ctrl.generator.generate(result);
+  };
 };
 
 export default angular
@@ -292,7 +310,8 @@ export default angular
 		sqlComparasionDropdown,
 		shareModelModal,
 		iconLogic,
-		supportBannersList
+		supportBannersList,
+		textEditor
 	])
 	.component("editorLogic", {
 		template,

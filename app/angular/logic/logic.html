@@ -21,8 +21,32 @@
 
 	<section class="mainContent">
 		<section class="elements-holder">
-			<!-- Insert elements to be used in model constrution -->
-			<support-banners-list></support-banners-list>
+			<!-- Insert elements to be used in model constrution or text editor -->
+			<ul class="nav nav-tabs">
+				<li ng-class="{active: $ctrl.activeTab === 'textEditor'}">
+					<a ng-click="$ctrl.activeTab = 'textEditor'">{{ 'Text Editor' | translate }}</a>
+				</li>
+				<li ng-class="{active: $ctrl.activeTab === 'elements'}">
+					<a ng-click="$ctrl.activeTab = 'elements'">{{ 'Elements' | translate }}</a>
+				</li>
+			</ul>
+
+			<div class="tab-content">
+				<div class="tab-content-textEditor" ng-show="$ctrl.activeTab === 'textEditor'">
+					<text-editor
+						tokens="$ctrl.languageTokens"
+						interpreter="$ctrl.interpreter"
+						grammar="$ctrl.grammar"
+					/>
+				</div>
+
+				<section
+					class="tab-content-elements"
+					ng-show="$ctrl.activeTab === 'elements'"
+				>
+					<support-banners-list />
+				</section>
+			</div>
 		</section>
 
 		<section id="content" class="model-area">

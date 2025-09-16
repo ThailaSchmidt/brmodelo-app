@@ -1,0 +1,11 @@
+<div class="text-editor">
+	<code-mirror
+		ng-model="$ctrl.text"
+		mode="$ctrl.modeToUse"
+		theme="default"
+		on-change="$ctrl.onChange()"
+	/>
+</div>
+<div class="editor-error-overlay" ng-if="$ctrl.errors" ng-class="{'show': $ctrl.errors, 'hide': !$ctrl.errors}">
+	{{$ctrl.errors}}
+</div>

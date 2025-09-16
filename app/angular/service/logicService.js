@@ -162,7 +162,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			graph: ls.graph,
 			paper: ls.paper,
 		});
-		$(".elements-holder").append(enditorManager.render().el);
+		$(".tab-content-elementas").append(enditorManager.render().el);
 		enditorManager.loadElements([
 			LogicFactory.createTable(),
 			LogicFactory.createView(),
