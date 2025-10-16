@@ -37,6 +37,8 @@
 						tokens="$ctrl.languageTokens"
 						interpreter="$ctrl.interpreter"
 						grammar="$ctrl.grammar"
+						on-text-change="$ctrl.onEditorTextChange(text)"
+            			initial-text="$ctrl.model.textModel"
 					/>
 				</div>
 
@@ -44,7 +46,7 @@
 					class="tab-content-elements"
 					ng-show="$ctrl.activeTab === 'elements'"
 				>
-					<support-banners-list />
+					<support-banners-list></support-banners-list>
 				</section>
 			</div>
 		</section>

@@ -1,0 +1,135 @@
+export default class SemanticInterpreter {
+    constructor() {
+        this.tables = [];
+        this.relations = [];
+    }
+
+    execute(ast) {
+        this.tables = [];
+        this.relations = [];
+        for (const node of ast) {
+            switch (node.type) {
+                case "table":
+                    this._checkTable(node);
+                    break;
+                case "relation":
+                    this._checkRelation(node);
+                    break;
+                default:
+                    throw Error(`Unknown AST node type: ${node.type}`);
+            }
+        }
+
+        return {
+			tables: Array.isArray(this.tables) ? this.tables : [],
+			relations: Array.isArray(this.relations) ? this.relations : []
+		};
+    }
+
+    _checkTable(node) {
+		if (this.tables.find(t => t.name === node.name)) {
+			throw Error(`Table '${node.name}' is already defined`);
+		}
+
+		let cols = [];
+		let hasPk = false;
+		let hasFk = false;
+
+		// Garante que node.attributes seja sempre array
+		const attrs = Array.isArray(node.attributes) ? node.attributes : node.attributes ? [node.attributes] : [];
+
+		for (const col of attrs) {
+			// Garante que col.constraints seja sempre array
+			const colConstraints = Array.isArray(col.constraints) ? col.constraints : col.constraints ? [col.constraints] : [];
+			const colOptions = colConstraints.map(c => c.type);
+
+			if (cols.find(c => c.name === col.name)) {
+				throw Error(`Column '${col.name}' already exists in table '${node.name}'`);
+			}
+
+			if (colOptions.includes("pk")) {
+				hasPk = true;
+			}
+			if (colOptions.includes("fk")) {
+				hasFk = true;
+			}
+
+			const columnObj = {
+				name: col.name,
+				colType: col.type || "int",
+				options: (col.constraints ?? []).map(c => c.type)
+			};
+
+			this._checkColumn(columnObj);
+			cols.push(columnObj);
+		}
+
+		if (!hasPk) {
+			throw Error(`Table '${node.name}' must have at least one primary key column`);
+		}
+
+		this.tables.push({
+			name: node.name,
+			columns: cols,
+			id: node.id || `${node.name}_id`,
+			position: node.position || { x: 50, y: 50 }
+		});
+	}
+
+
+
+    _checkColumn(col) {
+        const validTypes = ["int", "varchar", "char", "float", "date"];
+        if (!validTypes.includes(col.colType)) {
+            throw Error(`Invalid type '${col.colType}' for column '${col.name}'`);
+        }
+        for (const opt of col.options) {
+            if (opt.startsWith("default") && opt.split(" ").length < 2) {
+                throw Error(`Default value missing for column '${col.name}'`);
+            }
+            if (opt.startsWith("check") && opt.split(" ").length < 2) {
+                throw Error(`Check condition missing for column '${col.name}'`);
+            }
+        }
+    }
+
+	_checkRelation(node) {
+		console.log("=== _checkRelation called ===");
+		console.log("Raw node:", node);
+
+		// Verifica se a relação já existe
+		const exists = this.relations.find(r =>
+			r.table1 === node.table1 &&
+			r.table2 === node.table2 &&
+			r.fkColumn === node.fkColumn &&
+			r.pkColumn === node.pkColumn
+		);
+		console.log("Relation already exists?", exists);
+
+		const t1 = this.tables.find(t => t.name === node.table1);
+		const t2 = this.tables.find(t => t.name === node.table2);
+		console.log("Found table1?", t1 ? t1.name : null);
+		console.log("Found table2?", t2 ? t2.name : null);
+
+		if (!t1) throw Error(`Table '${node.table1}' is not defined`);
+		if (!t2) throw Error(`Table '${node.table2}' is not defined`);
+
+		// Verifica se as colunas existem
+		const col1 = t1.columns.find(c => c.name === node.fkColumn);
+		const col2 = t2.columns.find(c => c.name === node.pkColumn);
+		console.log("Found FK column?", col1 ? col1.name : null);
+		console.log("Found PK column?", col2 ? col2.name : null);
+
+		if (!col1) throw Error(`Column '${node.fkColumn}' does not exist in table '${node.table1}'`);
+		if (!col2) throw Error(`Column '${node.pkColumn}' does not exist in table '${node.table2}'`);
+
+		const validCards = ["1:1", "1:N", "N:1"];
+		console.log("Cardinality:", node.cardinality);
+		if (!validCards.includes(node.cardinality)) {
+			throw Error(`Invalid cardinality '${node.cardinality}' in relation`);
+		}
+
+		this.relations.push(node);
+		console.log("Relation added successfully!");
+		console.log("Current relations:", this.relations);}
+}

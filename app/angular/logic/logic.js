@@ -17,7 +17,7 @@ import supportBannersList from "../components/supportBannersList";
 
 import textEditor from "../components/editorDSL";
 import tokens from './dsl/tokens';
-import grammar from "./dsl/grammar.cjs";
+const grammar = require("./dsl/grammar.js");
 import SemanticInterpreter from "./dsl/interpreter";
 import DiagramGenerator from "./dsl/diagramGenerator"
 
@@ -75,10 +75,12 @@ const controller = function (
 		ctrl.grammar = grammar;
 		ctrl.SemanticInterpreter = new SemanticInterpreter();
 		ctrl.activeTab = 'textEditor';
-		ctrl.generator = new DiagramGenerator(configs.graph, ctrl.shapeFactory, ctrl.shapeLinker);
+		//ctrl.generator = new DiagramGenerator(configs.graph, ctrl.shapeFactory, ctrl.shapeLinker);
 
 		LogicService.buildWorkspace($stateParams.references.modelid, $rootScope.loggeduser, ctrl.stopLoading, $stateParams.references.conversionId);
-	}
+
+		ctrl.generator = new DiagramGenerator(LogicService);
+	};
 
 	ctrl.showFeedback = function (newMessage, show, type) {
 		ctrl.feedback.message = $filter('translate')(newMessage);
@@ -289,10 +291,10 @@ const controller = function (
 		onExitDeregister();
 	};
 
-	this.interpreter = function (result) {
-		ctrl.semanticInterpreter.execute(result);
-		ctrl.generator.generate(result);
-  };
+	this.interpreter = function(result) {
+		const semanticResult = ctrl.SemanticInterpreter.execute(result);
+		ctrl.generator.generate(semanticResult);
+	};
 };
 
 export default angular

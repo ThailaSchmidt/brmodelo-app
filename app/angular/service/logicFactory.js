@@ -8,7 +8,7 @@ const logicFactory = ($filter) => {
 
 	const _createTable = function () {
 		var table = new logic.Class({
-			position: { x: 12, y: 15 },
+			position: { x: 87, y: 15 },
 			size: { width: 100, height: 100 },
 			name: $filter('translate')('Table'),
 			attributes: [],
@@ -40,7 +40,7 @@ const logicFactory = ($filter) => {
 
 	const _createView = function () {
 		var table = new logic.Abstract({
-			position: { x: 12, y: 155 },
+			position: { x: 87, y: 155 },
 			size: { width: 100, height: 100 },
 			name: $filter('translate')('View'),
 			attributes: [],

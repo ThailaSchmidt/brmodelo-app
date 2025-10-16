@@ -43,6 +43,7 @@
     "mailgun.js": "^12.0.1",
     "mongodb": "~4.17.0",
     "mongoose": "^6.13.6",
+    "moo": "^0.5.2",
     "morgan": "^1.10.0",
     "nearley": "^2.20.1",
     "oclazyload": "^1.1.0",

@@ -180,5 +180,7 @@ export default {
 	'Star on Github': 'Star on Github',
 	'Donate': 'Donate',
 	'Note': 'Note',
-	'Color': 'Cor'
+	'Color': 'Cor',
+	'Text Editor': 'Text Editor',
+	'Elementss': 'Elements'
 };

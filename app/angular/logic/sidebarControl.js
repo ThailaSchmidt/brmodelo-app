@@ -5,7 +5,7 @@ import Column from "../service/Column";
 const Controller = function (LogicService, $rootScope, $timeout) {
 	const $ctrl = this;
 
-	$ctrl.visible = true;
+	$ctrl.visible = false;
 	$ctrl.views = [];
 
 	$ctrl.sections = {
@@ -46,6 +46,8 @@ const Controller = function (LogicService, $rootScope, $timeout) {
 	$ctrl.editionColumnMode = (column) => {
 		loadTableNames();
 		const columnValues = JSON.parse(JSON.stringify(column));
+		console.log("column.idOrigin", columnValues.idOrigin);
+    	console.log("column.tableOrigin", columnValues.tableOrigin);
 		$ctrl.editColumnModel = {
 			...columnValues,
 			tableOrigin: {

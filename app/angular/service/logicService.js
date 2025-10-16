@@ -162,11 +162,11 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			graph: ls.graph,
 			paper: ls.paper,
 		});
-		$(".tab-content-elementas").append(enditorManager.render().el);
+		$(".elements-holder").append(enditorManager.render().el);
 		enditorManager.loadElements([
 			LogicFactory.createTable(),
 			LogicFactory.createView(),
-			new joint.shapes.custom.Note({ position: { x: 20, y: 290 } })
+			new joint.shapes.custom.Note({ position: { x: 95, y: 290 } })
 		]);
 	}
 
@@ -281,7 +281,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 		newTable.attributes.position.y = (table.position.y);
 		newTable.set('name', table.name);
 
-		var columns = table.columns;
+		var columns = Array.isArray(table.columns) ? table.columns : [];
 
 		for (var j = 0; j < columns.length; j++) {
 			const column = new Column({
@@ -428,8 +428,15 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 	}
 
 	ls.save = function (view) {
+		if (!view.tables || !Array.isArray(view.tables)) {
+			view.tables = []; // força a ser um array
+		}
 		const graph = ls.selectedElement.model.graph;
 		const neighbors = graph.getNeighbors(ls.selectedElement.model);
+
+		const tables = Array.isArray(view.tables) ? view.tables : [];
+		console.log('view.tables:', view.tables, Array.isArray(view.tables));
+
 		view.tables.forEach(table => {
 			let linkedTable = neighbors.find(({ attributes: { id } }) => id === table.id);
 			if (!table.selected && linkedTable) ls.removeLink(table.id, graph);
@@ -520,6 +527,9 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 	ls.getTablesMap = function () {
 		var map = new Map();
 		var elements = ls.graph.getElements().filter(isTable);
+
+		elements = Array.isArray(elements) ? elements : [];
+
 		elements.forEach(element => {
 			map.set(element.attributes.name, element.id)
 		});
@@ -536,7 +546,7 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 		const elements = ls.graph.getElements();
 		return elements.filter(isTable).map(element => ({
 			name: element.attributes.name,
-			columns: element.attributes.objects.map(object => ({ ...object, selected: false })),
+			columns: (Array.isArray(element.attributes.objects) ? element.attributes.objects : []).map(object => ({ ...object, selected: false })),
 			id: element.id
 		}));
 	};
@@ -557,10 +567,12 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 	ls.buildTablesJson = function () {
 		var map = new Map();
 		var elements = ls.graph.getElements();
+		elements = Array.isArray(elements) ? elements : [];
+
 		elements.filter(isTable).forEach(element => {
 			var obj = {
 				name: element.attributes.name,
-				columns: element.attributes.objects
+				columns: Array.isArray(element.attributes.objects) ? element.attributes.objects : []
 			}
 			map.set(element.id, obj);
 		});

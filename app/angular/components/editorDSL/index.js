@@ -4,129 +4,108 @@ import codeMirror from "./codeMirror";
 import CodeMirror from "codemirror";
 import "codemirror/addon/mode/simple.js";
 import "./index.scss";
-const nearley = require("nearley");
+import nearley from "nearley";
+import grammar from "../../logic/dsl/grammar.js";
+import moo from "moo";
 
 const textEditor = function ($scope, $timeout) {
-	this.text = "";
-	let debounceTimeout = null;
-	let clearErrorTimeout = null;
+    this.text = "";
+    let debounceTimeout = null;
+    let clearErrorTimeout = null;
 
-	this.$onInit = () => {
-		this.modeName = "customMode_" + Math.random().toString(36).substr(2, 5);
-		this.errors = null;
+    // Garantir tokens sempre como array quando mudar
+    this.$onChanges = (changes) => {
+        if (changes.tokens && changes.tokens.currentValue) {
+            this.tokens = Array.isArray(changes.tokens.currentValue)
+                ? changes.tokens.currentValue
+                : [changes.tokens.currentValue];
+        }
+    };
 
-		const tokens = Array.isArray(this.tokens) ? this.tokens : [];
+    this.$onInit = () => {
+        this.modeName = "customMode_" + Math.random().toString(36).substr(2, 5);
+        this.errors = null;
 
-		CodeMirror.defineSimpleMode(this.modeName, {
-			start: tokens
-				.map((t) => ({
-					regex: new RegExp(t.regex),
-					token: t.token,
-				}))
-				.concat([
-					{
-						regex: /\/\/.*/,
-						token: "comment",
-					},
-					{
-						regex: /\/\*/,
-						token: "comment",
-						next: "commentBlock",
-					},
-					{
-						regex: /\s+/,
-						token: null,
-					},
-					{
-						regex: /./,
-						token: null,
-					},
-				]),
+        // Garante que tokens é sempre array
+        const tokens = Array.isArray(this.tokens) ? this.tokens : [];
 
-			commentBlock: [
-				{
-					regex: /.*?\*\//,
-					token: "comment",
-					next: "start",
-				},
-				{
-					regex: /.*/,
-					token: "comment",
-				},
-			],
-		});
+        CodeMirror.defineSimpleMode(this.modeName, {
+            start: tokens
+                .map((token) => ({
+                    regex: new RegExp(token.regex),
+                    token: token.token,
+                }))
+                .concat([
+                    { regex: /\/\/.*/, token: "comment" },
+                    { regex: /\/\*/, token: "comment", next: "commentBlock" },
+                    { regex: /\s+/, token: null },
+                    { regex: /./, token: null },
+                ]),
+            commentBlock: [
+                { regex: /.*?\*\//, token: "comment", next: "start" },
+                { regex: /.*/, token: "comment" },
+            ],
+        });
 
-		if (this.grammar) {
+        if (this.grammar) {
 			try {
-				this.myGrammar = nearley.Grammar.fromCompiled(this.grammar);
+				this.myGrammar = nearley.Grammar.fromCompiled(grammar);
 				this.lexer = this.myGrammar.lexer;
+				console.log("Grammar carregada com sucesso!");
 			} catch (e) {
 				console.error("Erro ao carregar o grammar:", e.message);
 			}
 		}
 
-		this.modeToUse = this.modeName;
-	};
 
-	this.onChange = function () {
-		if (debounceTimeout) {
-			$timeout.cancel(debounceTimeout);
-		}
+        this.modeToUse = this.modeName;
+    };
 
-		debounceTimeout = $timeout(() => {
-			if (this.interpreter && this.grammar) {
-				try {
-					const parser = new nearley.Parser(this.myGrammar, {
-						lexer: this.lexer,
-					});
-					parser.feed(this.text);
-					this.errors = null;
+    this.onChange = function () {
+        if (debounceTimeout) $timeout.cancel(debounceTimeout);
 
-					this.interpreter(parser.results[0]);
-				} catch (e) {
-					const formatted = this.formatSyntaxErrors(e);
-					this.errors = formatted;
-					this.resetError();
-				}
-				$scope.$applyAsync();
-			}
-		}, 1000);
-	};
+        debounceTimeout = $timeout(() => {
+            if (this.interpreter && this.grammar) {
+                try {
+                    const parser = new nearley.Parser(this.myGrammar, { lexer: this.lexer });
+                    parser.feed(this.text);
+                    this.errors = null;
+                    this.interpreter(parser.results[0]);
+                } catch (e) {
+                    this.errors = this.formatSyntaxErrors(e);
+                    this.resetError();
+                }
+                $scope.$applyAsync();
+            }
+        }, 1000);
+    };
 
-	this.formatSyntaxErrors = function (err) {
-		if (err.token && err.token.line && err.token.col) {
-			return `Syntax error at line ${err.token.line} col ${
-				err.token.col
-			}:\nUnexpected ${err.token.type} token: "${
-				err.token.text || err.token.value
-			}"`;
-		}
-    if (err.message) {
-      return err.message
-    }
-		return `Syntax error: Unexpected token "${err.token && err.token.value}"`;
-	};
+    this.formatSyntaxErrors = function (err) {
+        if (err.token && err.token.line && err.token.col) {
+            return `Syntax error at line ${err.token.line} col ${err.token.col}:\nUnexpected ${err.token.type} token: "${err.token.text || err.token.value}"`;
+        }
+        return err.message || `Syntax error: Unexpected token "${err.token?.value}"`;
+    };
 
-	this.resetError = function () {
-		if (clearErrorTimeout) {
-			$timeout.cancel(clearErrorTimeout);
-		}
-		clearErrorTimeout = $timeout(() => {
-			this.errors = null;
-			$scope.$applyAsync();
-		}, 5000);
-	};
+    this.resetError = function () {
+        if (clearErrorTimeout) $timeout.cancel(clearErrorTimeout);
+
+        clearErrorTimeout = $timeout(() => {
+            this.errors = null;
+            $scope.$applyAsync();
+        }, 5000);
+    };
 };
 textEditor.$inject = ["$scope", "$timeout"];
 
 export default angular
-	.module("app.textEditor", [codeMirror])
-	.component("textEditor", {
-		template,
-		controller: textEditor,
-		bindings: {
-			tokens: "<",
-			interpreter: "<",
-			grammar: "<",
-		},
-	}).name;
+    .module("app.textEditor", [codeMirror])
+    .component("textEditor", {
+        template,
+        controller: textEditor,
+        bindings: {
+            tokens: "<",
+            interpreter: "<",
+            grammar: "<",
+        },
+    }).name;
