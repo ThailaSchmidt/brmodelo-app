@@ -100,8 +100,7 @@ class DiagramGeneratorLogical {
 
     if (!left || !right) return;
 
-		const cardinalityLeft = node.cardinality || "";
-		const cardinalityRight = node.cardinality || "";
+	const cardinality = node.cardinality || "";
 
 
     const link = new joint.shapes.erd.Line({
@@ -112,12 +111,8 @@ class DiagramGeneratorLogical {
       },
       labels: [
       {
-        position: 0.1, // perto da source
-        attrs: { text: {  text: `(${cardinalityLeft})`, "font-size": 12, "font-weight": "400"  } }
-      },
-      {
         position: 0.9, // perto do target
-        attrs: { text: {  text: `(${cardinalityRight})`, "font-size": 12, "font-weight": "400"  } }
+        attrs: { text: {  text: `(${cardinality})`, "font-size": 12, "font-weight": "400"  } }
       }
     ]
     });
