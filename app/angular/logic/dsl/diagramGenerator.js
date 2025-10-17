@@ -13,6 +13,10 @@ class DiagramGeneratorLogical {
   }
 
   generate(ast) {
+	this.ls.graph.clear();
+	this.tables.clear();
+	this.relations = [];
+
     ast.tables?.forEach(table => this.createTable(table));
     ast.relations?.forEach(relation => this.createRelation(relation));
 
@@ -49,11 +53,9 @@ class DiagramGeneratorLogical {
 			return `${c.name}${flagText ? `: ${flagText}` : ''}`;
 		});
 
-		// tamanho dinâmico conforme número de linhas
 		const height = Math.max(100, 24 + attributesAsStrings.length * 18);
 		const width = 100;
 
-		// se já existir, atualiza e sai
 		if (this.tables.has(node.name)) {
 			const existing = this.tables.get(node.name);
 
@@ -75,7 +77,7 @@ class DiagramGeneratorLogical {
 			size: { width, height },
 			name: node.name || 'Table',
 			type: 'uml.Class',
-			attributes: attributesAsStrings, // array de strings usado pelo markup do shape
+			attributes: attributesAsStrings,
 			attrs: {
 				'.uml-class-name-rect': { fill: '#ffffffff'}
 			}
@@ -91,8 +93,6 @@ class DiagramGeneratorLogical {
 		this.ls.graph.addCell(tableElement);
 		this.tables.set(node.name, tableElement);
 	}
-
-
 
   createRelation(node) {
     const left = this.tables.get(node.table1);
