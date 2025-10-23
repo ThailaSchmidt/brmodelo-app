@@ -42,10 +42,11 @@ identifier -> %IDENTIFIER {% ([value]) => value.value %}
            | %NUMBER     {% ([value]) => value.value %}
 
 # Cardinality (para usar na relation_command)
-cardinality -> %ONE _ %COLON _ %ONE {% () => "1:1" %}
+cardinality -> %ZERO _ %COLON _ %ONE {% () => "0:1" %}
+			 | %ZERO _ %COLON _ %N {% () => "0:N" %}
+			 | %ONE _ %COLON _ %ONE {% () => "1:1" %}
              | %ONE _ %COLON _ %N   {% () => "1:N" %}
              | %N   _ %COLON _ %ONE {% () => "N:1" %}
-             | %N   _ %COLON _ %N   {% () => "N:N" %}
 
 
 # RELATION COMMAND (aponta para FK)
@@ -80,6 +81,7 @@ let lexer = moo.compile({
     DEFAULT:        "default",
     CHECK:          "check",
     ARROW:          "->",
+	ZERO:			"0"
     ONE:            "1",
     N:              "N",
     IDENTIFIER:     /[a-zA-Z_]\w*/,

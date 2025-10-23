@@ -1,9 +1,7 @@
 import * as joint from "jointjs/dist/joint";
-import Column from "../../service/Column"; // caminho correto até Column.js
-
 class DiagramGeneratorLogical {
   constructor(ls) {
-    this.ls = ls; // LogicService
+    this.ls = ls;
     this.tables = new Map();
     this.relations = [];
 
@@ -28,27 +26,33 @@ class DiagramGeneratorLogical {
 
   createTable(node) {
 		const index = this.tables.size;
-		const x = (index % 4) * 300 + 100;   // 4 colunas por linha
+		const x = (index % 4) * 300 + 100;   // 4 tabelas por linha
 		const y = Math.floor(index / 4) * 200 + 100; // nova linha a cada 4 tabelas
 
-		// normaliza/garante structure das colunas (inclui idOrigin etc.)
-		const columns = (node.columns || []).map((col, idx) => ({
-			idOrigin: col.idOrigin ?? `${node.name}_${col.name ?? 'col'}_${idx}`,
-			tableOrigin: col.idTableOrigin ?? node.name,
-			editable: col.editable ?? true,
-			name: col.name ?? '',
-			colType: col.colType ?? col.type ?? '',
-			type: col.type ?? col.colType ?? '',
-			pk: !!col.pk || (col.options && col.options.includes('pk')),
-			fk: !!col.fk || (col.options && col.options.includes('fk')),
-			options: col.options ?? []
-		}));
+		const columns = (node.columns || []).map((col, idx) => {
+			const colOptions = col.options ?? [];
+			return {
+				tableOrigin: { idOrigin: null },
+				editable: col.editable ?? true,
+				name: col.name ?? '',
+				colType: col.colType ?? col.type ?? '',
+				type: col.type ?? col.colType ?? '',
+				PK: colOptions.includes('pk'),
+				FK: colOptions.some(o => o.startsWith('fk')),
+				fkId: col.fkRef,
+				UNIQUE: colOptions.includes('unique'),
+				NOT_NULL: colOptions.includes('not null'),
+				AUTO_INCREMENT: colOptions.includes('autoincrement') || colOptions.includes('ai'),
+				options: colOptions
+			};
+
+		});
 
 		// strings para exibição no canvas
 		const attributesAsStrings = columns.map(c => {
 			const flags = [];
-			if (c.pk) flags.push('PK');
-			if (c.fk) flags.push('FK');
+			if (c.PK) flags.push('PK');
+			if (c.FK) flags.push('FK');
 			const flagText = flags.length ? ` ${flags.join(', ')}` : '';
 			return `${c.name}${flagText ? `: ${flagText}` : ''}`;
 		});
@@ -80,6 +84,14 @@ class DiagramGeneratorLogical {
 			attributes: attributesAsStrings,
 			attrs: {
 				'.uml-class-name-rect': { fill: '#ffffffff'}
+			}
+		});
+
+		columns.forEach(col => {
+			if (col.FK && col.fkId) {
+				// fkId contém o NOME da tabela referenciada
+				const fkTableElement = this.tables.get(col.fkId); // busca o elemento pelo nome
+				col.tableOrigin.idOrigin = fkTableElement?.id || null; // agora sim pega o ID do shape
 			}
 		});
 

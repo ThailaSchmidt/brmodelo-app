@@ -51,7 +51,6 @@ const textEditor = function ($scope, $timeout) {
 			try {
 				this.myGrammar = nearley.Grammar.fromCompiled(grammar);
 				this.lexer = this.myGrammar.lexer;
-				console.log("Grammar carregada com sucesso!");
 			} catch (e) {
 				console.error("Erro ao carregar o grammar:", e.message);
 			}

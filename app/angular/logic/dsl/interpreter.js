@@ -37,11 +37,13 @@ export default class SemanticInterpreter {
 
 		// Garante que node.attributes seja sempre array
 		const attrs = Array.isArray(node.attributes) ? node.attributes : node.attributes ? [node.attributes] : [];
-
 		for (const col of attrs) {
 			// Garante que col.constraints seja sempre array
 			const colConstraints = Array.isArray(col.constraints) ? col.constraints : col.constraints ? [col.constraints] : [];
 			const colOptions = colConstraints.map(c => c.type);
+			const fkConstraint = colConstraints.find(c => c.type === "fk");
+			const fkRef = fkConstraint ? fkConstraint.ref : null;
+			console.log("fkRef:", fkRef);
 
 			if (cols.find(c => c.name === col.name)) {
 				throw Error(`Column '${col.name}' already exists in table '${node.name}'`);
@@ -57,14 +59,15 @@ export default class SemanticInterpreter {
 			const columnObj = {
 				name: col.name,
 				colType: col.type || "int",
-				options: (col.constraints ?? []).map(c => c.type)
+				options: (col.constraints ?? []).map(c => c.type),
+				fkRef
 			};
 
 			this._checkColumn(columnObj);
 			cols.push(columnObj);
 		}
 
-		if (!hasPk) {
+		if (!hasPk) { //?????????????
 			throw Error(`Table '${node.name}' must have at least one primary key column`);
 		}
 
@@ -94,9 +97,6 @@ export default class SemanticInterpreter {
     }
 
 	_checkRelation(node) {
-		console.log("=== _checkRelation called ===");
-		console.log("Raw node:", node);
-
 		// Verifica se a relação já existe
 		const exists = this.relations.find(r =>
 			r.table1 === node.table1 &&
@@ -104,12 +104,9 @@ export default class SemanticInterpreter {
 			r.fkColumn === node.fkColumn &&
 			r.pkColumn === node.pkColumn
 		);
-		console.log("Relation already exists?", exists);
 
 		const t1 = this.tables.find(t => t.name === node.table1);
 		const t2 = this.tables.find(t => t.name === node.table2);
-		console.log("Found table1?", t1 ? t1.name : null);
-		console.log("Found table2?", t2 ? t2.name : null);
 
 		if (!t1) throw Error(`Table '${node.table1}' is not defined`);
 		if (!t2) throw Error(`Table '${node.table2}' is not defined`);
@@ -117,19 +114,15 @@ export default class SemanticInterpreter {
 		// Verifica se as colunas existem
 		const col1 = t1.columns.find(c => c.name === node.fkColumn);
 		const col2 = t2.columns.find(c => c.name === node.pkColumn);
-		console.log("Found FK column?", col1 ? col1.name : null);
-		console.log("Found PK column?", col2 ? col2.name : null);
 
 		if (!col1) throw Error(`Column '${node.fkColumn}' does not exist in table '${node.table1}'`);
 		if (!col2) throw Error(`Column '${node.pkColumn}' does not exist in table '${node.table2}'`);
 
-		const validCards = ["1:1", "1:N", "N:1"];
-		console.log("Cardinality:", node.cardinality);
+		const validCards = ["1:1", "1:N", "N:1", "0:1", "0:N"];
 		if (!validCards.includes(node.cardinality)) {
 			throw Error(`Invalid cardinality '${node.cardinality}' in relation`);
 		}
 
 		this.relations.push(node);
-		console.log("Relation added successfully!");
-		console.log("Current relations:", this.relations);}
+}
 }

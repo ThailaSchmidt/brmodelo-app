@@ -40,6 +40,7 @@ const Controller = function (LogicService, $rootScope, $timeout) {
 
 	$ctrl.getTableOriginName = (tableId) => {
 		const tables = [...$ctrl.mapTables].map(([name, value]) => ({ name, value }));
+		console.log("getTableOriginName tables:", tables, "tableId:", tableId);
 		return tables.find((table) => table.value == tableId)?.name;
 	}
 
@@ -55,6 +56,9 @@ const Controller = function (LogicService, $rootScope, $timeout) {
 				idName: $ctrl.getTableOriginName(columnValues.tableOrigin.idOrigin),
 			}
 		};
+
+		console.log("editColumnModel result:", $ctrl.editColumnModel);
+
 		$ctrl.closeAllColumns();
 		column.expanded = true;
 	}
