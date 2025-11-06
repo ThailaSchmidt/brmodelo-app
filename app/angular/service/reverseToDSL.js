@@ -35,8 +35,8 @@ export function reverseToDSL(model, codeEditor) {
 		// remove ":pk" ":fk" do nome
 		const fk = rel.fkColumn.replace(/:.*/g, "");
     	const pk = rel.pkColumn.replace(/:.*/g, "");
-		const [card1, card2] = rel.cardinality;
-		return `Relation ${rel.table1}(${fk}) (${card1}, ${card2}) ${rel.table2}(${pk});`;
+		const card = rel.cardinality || "<1-0";
+		return `Relation ${rel.table1}(${fk}) ${card} ${rel.table2}(${pk});`;
 	}
 
     const dslAst = [];
@@ -54,6 +54,40 @@ export function reverseToDSL(model, codeEditor) {
     });
 
 	const relations = [];
+	const graphLinks = model.graph?.getLinks?.() || [];
+
+	function findCardinalityFromLinks(tableName1, tableName2) {
+	for (const link of graphLinks) {
+		const srcId = link.get('source')?.id;
+		const tgtId = link.get('target')?.id;
+		const srcName = model.get(srcId)?.get('name');
+		const tgtName = model.get(tgtId)?.get('name');
+		if (!srcName || !tgtName) continue;
+		if ((srcName === tableName1 && tgtName === tableName2) || (srcName === tableName2 && tgtName === tableName1)) {
+			// prioriza metadado salvo
+			const meta = link.get('cardinality');
+			if (meta) return meta;
+			// fallback: tenta ler labels (antigo comportamento)
+			const labels = link.get('labels') || [];
+			let leftCard = labels[0]?.attrs?.text?.text?.replace(/[()]/g, "")?.toLowerCase() || "";
+			let rightCard = labels[1]?.attrs?.text?.text?.replace(/[()]/g, "")?.toLowerCase() || "";
+
+			let card = "1-0>";
+			if (leftCard === "0,1" && rightCard === "0,n") card = "0-0>";
+			else if (leftCard === "0,1" && rightCard === "1,n") card = "0-1>";
+			else if (leftCard === "1,1" && rightCard === "0,n") card = "1-0>";
+			else if (leftCard === "1,1" && rightCard === "1,n") card = "1-1>";
+			else if (leftCard === "0,n" && rightCard === "0,1") card = "<0-0";
+			else if (leftCard === "1,n" && rightCard === "0,1") card = "<0-1";
+			else if (leftCard === "0,n" && rightCard === "1,1") card = "<1-0";
+			else if (leftCard === "1,n" && rightCard === "1,1") card = "<1-1";
+			else if (leftCard === "1,1" && rightCard === "1,1") card = "1-1";
+			return card;
+		}
+	}
+	return null;
+}
+
     model.keys().forEach(key => {
 		const table = model.get(key);
 		table.columns.forEach(col => {
@@ -62,9 +96,13 @@ export function reverseToDSL(model, codeEditor) {
 			constraints.forEach(constraint => {
 				if (constraint.type === "fk" && constraint.ref) {
 					const refTable = model.get(col.tableOrigin?.idOrigin);
-    				const pkCol = refTable?.columns.find(c => c.PK)?.name || "id";
-					const cardinality = constraint.cardinality || col.cardinality || ["1:1", "0:N"];
-					const [leftCard, rightCard] = cardinality; // origem, destino
+					const pkCol = refTable?.columns.find(c => c.PK)?.name || "id";
+
+					let cardinality = constraint.cardinality || col.cardinality;
+					if (!cardinality) {
+						const inferred = findCardinalityFromLinks(table.name, constraint.ref);
+						cardinality = inferred || "<1-0";
+					}
 
 					relations.push({
 						type: "relation",
@@ -72,7 +110,7 @@ export function reverseToDSL(model, codeEditor) {
 						fkColumn: col.name,
 						table2: constraint.ref,
 						pkColumn: pkCol,
-						cardinality: [leftCard, rightCard]
+						cardinality: cardinality
 					});
 				}
 			});
@@ -110,6 +148,16 @@ export function reverseToDSL(model, codeEditor) {
     }).join("\n\n");
 
 
-    // atualiza o codemirror
+    // antes de atualizar o editor
+	const cursor = codeEditor.getCursor(); // guarda posição atual
+	const scroll = codeEditor.getScrollInfo(); // guarda rolagem
+
+	// atualiza o código
 	codeEditor.setValue(dslCode);
+
+	// restaura cursor e rolagem após pequeno atraso
+	setTimeout(() => {
+	codeEditor.setCursor(cursor);
+	codeEditor.scrollTo(scroll.left, scroll.top);
+	}, 0);
 }

@@ -114,13 +114,8 @@ export default class SemanticInterpreter {
 		if (!col2) throw Error(`Column '${node.pkColumn}' does not exist in table '${node.table2}'`);
 		if (col1) col1.fkRef = node.table2; // aqui seta o ref
 
-		const validCards = ["1:1", "1:N", "N:1", "0:1", "0:N"];
-		if (
-		!Array.isArray(node.cardinality) ||
-		node.cardinality.length !== 2 ||
-		!validCards.includes(node.cardinality[0]) ||
-		!validCards.includes(node.cardinality[1])
-		) {
+		const validCards = ["0-0>", "0-1>", "1-0>", "1-1>", "<0-0", "<0-1", "<1-0", "<1-1", "1-1"];
+		if (typeof node.cardinality !== "string" || !validCards.includes(node.cardinality)) {
 			throw Error(`Invalid cardinality '${node.cardinality}' in relation`);
 		}
 

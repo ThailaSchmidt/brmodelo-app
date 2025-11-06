@@ -30,7 +30,7 @@ constraint_list -> constraint_item (_ %COMMA _ constraint_item):*
     {% ([first, rest]) => [first, ...rest.map(r => r[3])] %}
 
 constraint_item -> %PK               {% () => ({ type: "pk" }) %}
-                 | %FK _ %ARROW _ identifier {% ([,, name]) => ({ type: "fk", ref: name }) %}
+                 | %FK _ %ARROWR _ identifier {% ([,, name]) => ({ type: "fk", ref: name }) %}
                  | %UNIQUE            {% () => ({ type: "unique" }) %}
                  | %NOT_NULL          {% () => ({ type: "not_null" }) %}
                  | %AUTO_INCREMENT    {% () => ({ type: "auto_increment" }) %}
@@ -41,34 +41,33 @@ identifier -> %IDENTIFIER {% ([value]) => value.value %}
            | %STRING     {% ([value]) => value.value %}
            | %NUMBER     {% ([value]) => value.value %}
 
-# Cardinality (para usar na relation_command)
-cardinality -> %ZERO _ %COLON _ %ONE {% () => "0:1" %}
-			 | %ZERO _ %COLON _ %N {% () => "0:N" %}
-			 | %ONE _ %COLON _ %ONE {% () => "1:1" %}
-             | %ONE _ %COLON _ %N   {% () => "1:N" %}
-             | %N   _ %COLON _ %ONE {% () => "N:1" %}
-
+# Cardinality atualizada
+cardinality_arrow ->
+      %ZERO _ %HIFEN _ %ZERO _ %ARROWR {% () => "0-0>" %}
+    | %ZERO _ %HIFEN _ %ONE  _ %ARROWR {% () => "0-1>" %}
+    | %ONE  _ %HIFEN _ %ZERO _ %ARROWR {% () => "1-0>" %}
+    | %ONE  _ %HIFEN _ %ONE  _ %ARROWR {% () => "1-1>" %}
+	| %ARROWL _ %ZERO _ %HIFEN _ %ZERO {% () => "<0-0" %}
+    | %ARROWL _ %ZERO _ %HIFEN _ %ONE  {% () => "<0-1" %}
+    | %ARROWL _ %ONE  _ %HIFEN _ %ZERO {% () => "<1-0" %}
+    | %ARROWL _ %ONE  _ %HIFEN _ %ONE  {% () => "<1-1" %}
+	| %ONE  _ %HIFEN _ %ONE           {% () => "1-1" %}
 
 # RELATION COMMAND (aponta para FK)
 relation_command ->
     %RELATION _ identifier _ %LPAREN identifier %RPAREN _
-    %LPAREN cardinality _ %COMMA _ cardinality %RPAREN _
+    cardinality_arrow _
     identifier _ %LPAREN identifier %RPAREN _ %SEMICOLON
     {%
-		(data) => {
-			const tokens = data.filter(d => typeof d === 'string');
-			return {
-			type: "relation",
-			table1: tokens[0],
-			fkColumn: tokens[1],
-			card1: tokens[2],
-			card2: tokens[3],
-			table2: tokens[4],
-			pkColumn: tokens[5],
-			cardinality: [tokens[2], tokens[3]]
-			};
-		}
-	%}
+        ([, , table1, , , fk, , , card, , table2, , , pk]) => ({
+            type: "relation",
+            table1,
+            fkColumn: fk,
+            table2,
+            pkColumn: pk,
+            cardinality: card
+        })
+    %}
 
 
 #ignora espaços
@@ -89,10 +88,10 @@ let lexer = moo.compile({
     AUTO_INCREMENT: "auto increment",
     DEFAULT:        "default",
     CHECK:          "check",
-    ARROW:          "->",
-	ZERO:			"0"
+    ARROWR: { match: /->|>/ },
+	ARROWL: { match: /<-|</ },
+	ZERO:			"0",
     ONE:            "1",
-    N:              "N",
     IDENTIFIER:      /[\p{L}_][\p{L}\p{N}_]*/u,
     STRING:         { match: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, value: x => x.slice(1,-1) },
     NUMBER:         /[0-9]+/,
@@ -105,6 +104,7 @@ let lexer = moo.compile({
     RPAREN:         ")",
     COMMA:          ",",
     COLON:          ":",
+	HIFEN:			"-",
 });
 
 const originalLexerNext = lexer.next;

@@ -18,11 +18,12 @@ const tokens = [
   { regex: /\bdefault\b/, token: "modifier" },
   { regex: /\bcheck\b/, token: "modifier" },
 
-  { regex: /\b1:1\b/, token: "cardinality" },
-  { regex: /\b1:N\b/, token: "cardinality" },
-  { regex: /\bN:1\b/, token: "cardinality" },
+  { regex: /\b[01]-[01]>\b/, token: "cardinality" },
+	{ regex: /\b<[01]-[01]\b/, token: "cardinality" },
+	{ regex: /\b[01]-[01]\b/, token: "cardinality" },
 
   { regex: /->/, token: "operator" },
+	{ regex: /</, token: "operator" },
   { regex: /{/, token: "brace" },
   { regex: /}/, token: "brace" },
   { regex: /\(/, token: "paren" },

@@ -112,7 +112,19 @@ class DiagramGeneratorLogical {
 
 		if (!left || !right) return;
 
-		const [rightCard, leftCard] = node.cardinality || ["", ""];
+		const cardMap = {
+			"0-0>": ["0,1", "0,n"],
+			"0-1>": ["0,1", "1,n"],
+			"1-0>": ["1,1", "0,n"],
+			"1-1>": ["1,1", "1,n"],
+			"<0-0": ["0,n", "0,1"],
+			"<0-1": ["1,n", "0,1"],
+			"<1-0": ["0,n", "1,1"],
+			"<1-1": ["1,n", "1,1"],
+			"1-1":  ["1,1", "1,1"]
+		};
+
+		const [leftCard, rightCard] = cardMap[node.cardinality] || ["", ""];
 
 		const link = new joint.shapes.erd.Line({
 			source: { id: left.id },
@@ -144,7 +156,24 @@ class DiagramGeneratorLogical {
 			]
 		});
 
+		// PARA O REVERSE
+		if (node.cardinality) {
+			link.set('cardinality', node.cardinality);
+		} else {
+			link.set('cardinality', "1-0>");
+		}
+
 		this.ls.graph.addCell(link);
+
+		const leftCols = left.get('columns') || [];
+		for (let col of leftCols) {
+			if (col.FK && (col.fkId === node.table2 || col.tableOrigin?.idOrigin === right.id)) {
+				col.cardinality = node.cardinality || link.get('cardinality');
+				left.set('columns', leftCols);
+				left.set('objects', leftCols);
+				break;
+			}
+		}
 
 		this.relations.push({
 			table1: node.table1,

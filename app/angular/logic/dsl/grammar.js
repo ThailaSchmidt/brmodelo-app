@@ -17,10 +17,10 @@ let lexer = moo.compile({
     AUTO_INCREMENT: "auto increment",
     DEFAULT:        "default",
     CHECK:          "check",
-    ARROW:          "->",
+    ARROWR: { match: /->|>/ },
+	ARROWL: { match: /<-|</ },
 	ZERO:			"0",
     ONE:            "1",
-    N:              "N",
     IDENTIFIER:      /[\p{L}_][\p{L}\p{N}_]*/u,
     STRING:         { match: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, value: x => x.slice(1,-1) },
     NUMBER:         /[0-9]+/,
@@ -33,6 +33,7 @@ let lexer = moo.compile({
     RPAREN:         ")",
     COMMA:          ",",
     COLON:          ":",
+	HIFEN:			"-",
 });
 
 const originalLexerNext = lexer.next;
@@ -76,7 +77,7 @@ var grammar = {
     {"name": "constraint_list$ebnf$1", "symbols": ["constraint_list$ebnf$1", "constraint_list$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "constraint_list", "symbols": ["constraint_item", "constraint_list$ebnf$1"], "postprocess": ([first, rest]) => [first, ...rest.map(r => r[3])]},
     {"name": "constraint_item", "symbols": [(lexer.has("PK") ? {type: "PK"} : PK)], "postprocess": () => ({ type: "pk" })},
-    {"name": "constraint_item", "symbols": [(lexer.has("FK") ? {type: "FK"} : FK), "_", (lexer.has("ARROW") ? {type: "ARROW"} : ARROW), "_", "identifier"], "postprocess": ([,,,, name]) => ({ type: "fk", ref: name.text ?? name.value ?? name })},
+    {"name": "constraint_item", "symbols": [(lexer.has("FK") ? {type: "FK"} : FK), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR), "_", "identifier"], "postprocess": ([,,,, name]) => ({ type: "fk", ref: name.text ?? name.value ?? name })},
     {"name": "constraint_item", "symbols": [(lexer.has("UNIQUE") ? {type: "UNIQUE"} : UNIQUE)], "postprocess": () => ({ type: "unique" })},
     {"name": "constraint_item", "symbols": [(lexer.has("NOT_NULL") ? {type: "NOT_NULL"} : NOT_NULL)], "postprocess": () => ({ type: "not_null" })},
     {"name": "constraint_item", "symbols": [(lexer.has("AUTO_INCREMENT") ? {type: "AUTO_INCREMENT"} : AUTO_INCREMENT)], "postprocess": () => ({ type: "auto_increment" })},
@@ -85,26 +86,25 @@ var grammar = {
     {"name": "identifier", "symbols": [(lexer.has("IDENTIFIER") ? {type: "IDENTIFIER"} : IDENTIFIER)], "postprocess": ([value]) => value.value},
     {"name": "identifier", "symbols": [(lexer.has("STRING") ? {type: "STRING"} : STRING)], "postprocess": ([value]) => value.value},
     {"name": "identifier", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([value]) => value.value},
-    {"name": "cardinality", "symbols": [(lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "0:1"},
-    {"name": "cardinality", "symbols": [(lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("N") ? {type: "N"} : N)], "postprocess": () => "0:N"},
-    {"name": "cardinality", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "1:1"},
-    {"name": "cardinality", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("N") ? {type: "N"} : N)], "postprocess": () => "1:N"},
-    {"name": "cardinality", "symbols": [(lexer.has("N") ? {type: "N"} : N), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "N:1"},
-    {"name": "relation_command", "symbols": [(lexer.has("RELATION") ? {type: "RELATION"} : RELATION), "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "cardinality", "_", (lexer.has("COMMA") ? {type: "COMMA"} : COMMA), "_", "cardinality", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", (lexer.has("SEMICOLON") ? {type: "SEMICOLON"} : SEMICOLON)], "postprocess":
-        (data) => {
-        	const tokens = data.filter(d => typeof d === 'string');
-        	return {
-        	type: "relation",
-        	table1: tokens[0],
-        	fkColumn: tokens[1],
-        	card1: tokens[2],
-        	card2: tokens[3],
-        	table2: tokens[4],
-        	pkColumn: tokens[5],
-        	cardinality: [tokens[2], tokens[3]]
-        	};
-        }
-        	},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "0-0>"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "0-1>"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "1-0>"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "1-1>"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO)], "postprocess": () => "<0-0"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "<0-1"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO)], "postprocess": () => "<1-0"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "<1-1"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "1-1"},
+    {"name": "relation_command", "symbols": [(lexer.has("RELATION") ? {type: "RELATION"} : RELATION), "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", "cardinality_arrow", "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", (lexer.has("SEMICOLON") ? {type: "SEMICOLON"} : SEMICOLON)], "postprocess":
+        ([, , table1, , , fk, , , card, , table2, , , pk]) => ({
+            type: "relation",
+            table1,
+            fkColumn: fk,
+            table2,
+            pkColumn: pk,
+            cardinality: card
+        })
+            },
     {"name": "_$ebnf$1", "symbols": []},
     {"name": "_$ebnf$1", "symbols": ["_$ebnf$1", (lexer.has("WHITESPACE") ? {type: "WHITESPACE"} : WHITESPACE)], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "_", "symbols": ["_$ebnf$1"], "postprocess": () => null}
