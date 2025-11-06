@@ -21,7 +21,7 @@ let lexer = moo.compile({
 	ZERO:			"0",
     ONE:            "1",
     N:              "N",
-    IDENTIFIER:     /[a-zA-Z_]\w*/,
+    IDENTIFIER:      /[\p{L}_][\p{L}\p{N}_]*/u,
     STRING:         { match: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, value: x => x.slice(1,-1) },
     NUMBER:         /[0-9]+/,
     LBRACE:         "{",
@@ -90,16 +90,21 @@ var grammar = {
     {"name": "cardinality", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "1:1"},
     {"name": "cardinality", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("N") ? {type: "N"} : N)], "postprocess": () => "1:N"},
     {"name": "cardinality", "symbols": [(lexer.has("N") ? {type: "N"} : N), "_", (lexer.has("COLON") ? {type: "COLON"} : COLON), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "N:1"},
-    {"name": "relation_command", "symbols": [(lexer.has("RELATION") ? {type: "RELATION"} : RELATION), "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", "cardinality", "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN)], "postprocess":  function([, , table1, , , fkColumn, , , cardinality, , table2, , , pkColumn, ]) {
-            return {
-                type: "relation",
-                table1,
-                fkColumn,
-                cardinality,
-                table2,
-                pkColumn
-            };
-        } },
+    {"name": "relation_command", "symbols": [(lexer.has("RELATION") ? {type: "RELATION"} : RELATION), "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "cardinality", "_", (lexer.has("COMMA") ? {type: "COMMA"} : COMMA), "_", "cardinality", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", (lexer.has("SEMICOLON") ? {type: "SEMICOLON"} : SEMICOLON)], "postprocess":
+        (data) => {
+        	const tokens = data.filter(d => typeof d === 'string');
+        	return {
+        	type: "relation",
+        	table1: tokens[0],
+        	fkColumn: tokens[1],
+        	card1: tokens[2],
+        	card2: tokens[3],
+        	table2: tokens[4],
+        	pkColumn: tokens[5],
+        	cardinality: [tokens[2], tokens[3]]
+        	};
+        }
+        	},
     {"name": "_$ebnf$1", "symbols": []},
     {"name": "_$ebnf$1", "symbols": ["_$ebnf$1", (lexer.has("WHITESPACE") ? {type: "WHITESPACE"} : WHITESPACE)], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "_", "symbols": ["_$ebnf$1"], "postprocess": () => null}

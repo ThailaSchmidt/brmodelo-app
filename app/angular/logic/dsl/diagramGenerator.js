@@ -1,33 +1,33 @@
 import * as joint from "jointjs/dist/joint";
 class DiagramGeneratorLogical {
-  constructor(ls) {
-    this.ls = ls;
-    this.tables = new Map();
-    this.relations = [];
+	constructor(ls) {
+		this.ls = ls;
+		this.tables = new Map();
+		this.relations = [];
 
-    if (!this.ls.graph) {
-      throw new Error("LogicService.graph não inicializado. Chame buildWorkspace() antes de instanciar DiagramGeneratorLogical.");
-    }
-  }
+		if (!this.ls.graph) {
+			throw new Error("LogicService.graph não inicializado.");
+		}
+  	}
 
-  generate(ast) {
-	this.ls.graph.clear();
-	this.tables.clear();
-	this.relations = [];
+	generate(ast) {
+		this.ls.graph.clear();
+		this.tables.clear();
+		this.relations = [];
 
-    ast.tables?.forEach(table => this.createTable(table));
-    ast.relations?.forEach(relation => this.createRelation(relation));
+		ast.tables?.forEach(table => this.createTable(table));
+		ast.relations?.forEach(relation => this.createRelation(relation));
 
-    return {
-      tables: Array.from(this.tables.values()),
-      relations: this.relations
-    };
-  }
+		return {
+		tables: Array.from(this.tables.values()),
+		relations: this.relations
+		};
+	}
 
-  createTable(node) {
+    createTable(node) {
 		const index = this.tables.size;
-		const x = (index % 4) * 300 + 100;   // 4 tabelas por linha
-		const y = Math.floor(index / 4) * 200 + 100; // nova linha a cada 4 tabelas
+		const x = (index % 3) * 300 + 100;   // 3 tabelas por linha
+		const y = Math.floor(index / 3) * 200 + 100; // nova linha a cada 3 tabelas
 
 		const columns = (node.columns || []).map((col, idx) => {
 			const colOptions = col.options ?? [];
@@ -106,37 +106,54 @@ class DiagramGeneratorLogical {
 		this.tables.set(node.name, tableElement);
 	}
 
-  createRelation(node) {
-    const left = this.tables.get(node.table1);
-  	const right = this.tables.get(node.table2);
+	createRelation(node) {
+		const left = this.tables.get(node.table1);
+		const right = this.tables.get(node.table2);
 
-    if (!left || !right) return;
+		if (!left || !right) return;
 
-	const cardinality = node.cardinality || "";
+		const [rightCard, leftCard] = node.cardinality || ["", ""];
 
-
-    const link = new joint.shapes.erd.Line({
-      source: { id: left.id },
-      target: { id: right.id },
-      attrs: {
-        ".connection": { stroke: "#000", "stroke-width": 0.9 },
-      },
-      labels: [
-      {
-        position: 0.9, // perto do target
-        attrs: { text: {  text: `(${cardinality})`, "font-size": 12, "font-weight": "400"  } }
-      }
-    ]
-    });
-
-    this.ls.graph.addCell(link);
-
-    this.relations.push({
-			left: node.table1,
-			right: node.table2,
-			cardinality: node.cardinality
+		const link = new joint.shapes.erd.Line({
+			source: { id: left.id },
+			target: { id: right.id },
+			attrs: {
+			".connection": { stroke: "#000", "stroke-width": 0.9 },
+			},
+			labels: [
+			{
+				position: 0.1, // perto da origem (table1)
+				attrs: {
+				text: {
+					text: `(${leftCard})`,
+					"font-size": 12,
+					"font-weight": "400"
+				}
+				}
+			},
+			{
+				position: 0.9, // perto do destino (table2)
+				attrs: {
+				text: {
+					text: `(${rightCard})`,
+					"font-size": 12,
+					"font-weight": "400"
+				}
+				}
+			}
+			]
 		});
-  }
+
+		this.ls.graph.addCell(link);
+
+		this.relations.push({
+			table1: node.table1,
+			fkColumn: node.fkColumn,
+			cardinality: node.cardinality,
+			table2: node.table2,
+			pkColumn: node.pkColumn
+		});
+   }
 }
 
 export default DiagramGeneratorLogical;

@@ -22,6 +22,7 @@ import KeyboardController, { types } from "../components/keyboardController";
 import conversorService from "../service/conversorService"
 import Column from "./Column";
 import ToolsViewService from "../service/toolsViewService";
+import { reverseToDSL } from './reverseToDSL';
 
 const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService) => {
 	var ls = {};
@@ -140,10 +141,16 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 		ls.graph.on('add', function (cell) {
 			ls.checkAndEditTableName(cell);
 			$rootScope.$broadcast("element:isDirty");
+			ls.syncDSL();
 		});
 
 		ls.graph.on('change', function (cell) {
 			$rootScope.$broadcast("element:isDirty");
+			ls.syncDSL();
+		});
+
+		ls.graph.on('remove', function (cell) {
+			ls.syncDSL();
 		});
 	}
 
@@ -582,6 +589,31 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 	ls.unbindAll = () => {
 		ls.keyboardController.unbindAll()
 	}
+
+	ls.codeEditor = null;
+
+	ls.setCodeEditor = function(editor) {
+		ls.codeEditor = editor;
+	};
+
+
+	ls.syncDSL = function() {
+		if (!ls.codeEditor) {
+			console.log("Code editor não está definido!");
+			return;
+		}
+		if (ls.codeEditor) {
+			reverseToDSL(ls.buildTablesJson(), ls.codeEditor);
+		}
+
+		const tablesMap = ls.buildTablesJson();
+
+		try {
+			reverseToDSL(tablesMap, ls.codeEditor);
+		} catch (err) {
+			console.error("Erro ao executar reverseToDSL:", err);
+		}
+	};
 
 	return ls;
 }

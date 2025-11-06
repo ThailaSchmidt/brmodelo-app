@@ -43,7 +43,6 @@ export default class SemanticInterpreter {
 			const colOptions = colConstraints.map(c => c.type);
 			const fkConstraint = colConstraints.find(c => c.type === "fk");
 			const fkRef = fkConstraint ? fkConstraint.ref : null;
-			console.log("fkRef:", fkRef);
 
 			if (cols.find(c => c.name === col.name)) {
 				throw Error(`Column '${col.name}' already exists in table '${node.name}'`);
@@ -65,10 +64,6 @@ export default class SemanticInterpreter {
 
 			this._checkColumn(columnObj);
 			cols.push(columnObj);
-		}
-
-		if (!hasPk) { //?????????????
-			throw Error(`Table '${node.name}' must have at least one primary key column`);
 		}
 
 		this.tables.push({
@@ -117,12 +112,18 @@ export default class SemanticInterpreter {
 
 		if (!col1) throw Error(`Column '${node.fkColumn}' does not exist in table '${node.table1}'`);
 		if (!col2) throw Error(`Column '${node.pkColumn}' does not exist in table '${node.table2}'`);
+		if (col1) col1.fkRef = node.table2; // aqui seta o ref
 
 		const validCards = ["1:1", "1:N", "N:1", "0:1", "0:N"];
-		if (!validCards.includes(node.cardinality)) {
+		if (
+		!Array.isArray(node.cardinality) ||
+		node.cardinality.length !== 2 ||
+		!validCards.includes(node.cardinality[0]) ||
+		!validCards.includes(node.cardinality[1])
+		) {
 			throw Error(`Invalid cardinality '${node.cardinality}' in relation`);
 		}
 
 		this.relations.push(node);
-}
+	}
 }

@@ -80,6 +80,12 @@ const controller = function (
 		LogicService.buildWorkspace($stateParams.references.modelid, $rootScope.loggeduser, ctrl.stopLoading, $stateParams.references.conversionId);
 
 		ctrl.generator = new DiagramGenerator(LogicService);
+
+		 $timeout(() => {
+			if (ctrl.codeEditorInstance) {
+				LogicService.setCodeEditor(ctrl.codeEditorInstance);
+			}
+		}, 500);
 	};
 
 	ctrl.showFeedback = function (newMessage, show, type) {

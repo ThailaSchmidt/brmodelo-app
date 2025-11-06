@@ -37,17 +37,21 @@ const codeMirror = angular
 					const editor = CodeMirror.fromTextArea(textarea, config);
 					editor.getWrapperElement().classList.add("code-mirror");
 
+					const injector = angular.element(document.body).injector();
+					const LogicService = injector.get("LogicService");
+					if (LogicService) {
+						LogicService.setCodeEditor(editor);
+					}
+
 					$timeout(() => {
 						editor.refresh();
 					}, 0);
 
-					editor.on("change", function (cm) {
+					editor.on("change", function (cm, changeObj) {
+						if (changeObj.origin === "setValue") return; // ignora mudanças internas
 						scope.$applyAsync(() => {
 							ngModel.$setViewValue(cm.getValue());
-
-							if (scope.onChange) {
-								scope.onChange();
-							}
+							if (scope.onChange) scope.onChange();
 						});
 					});
 

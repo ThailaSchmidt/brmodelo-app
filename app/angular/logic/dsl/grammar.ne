@@ -50,19 +50,28 @@ cardinality -> %ZERO _ %COLON _ %ONE {% () => "0:1" %}
 
 
 # RELATION COMMAND (aponta para FK)
-relation_command -> %RELATION _ identifier _ %LPAREN identifier %RPAREN _ cardinality _ identifier _ %LPAREN identifier %RPAREN
-    {% function([, , table1, , , fkColumn, , , cardinality, , table2, , , pkColumn, ]) {
-        return {
-            type: "relation",
-            table1,
-            fkColumn,
-            cardinality,
-            table2,
-            pkColumn
-        };
-    } %}
+relation_command ->
+    %RELATION _ identifier _ %LPAREN identifier %RPAREN _
+    %LPAREN cardinality _ %COMMA _ cardinality %RPAREN _
+    identifier _ %LPAREN identifier %RPAREN _ %SEMICOLON
+    {%
+		(data) => {
+			const tokens = data.filter(d => typeof d === 'string');
+			return {
+			type: "relation",
+			table1: tokens[0],
+			fkColumn: tokens[1],
+			card1: tokens[2],
+			card2: tokens[3],
+			table2: tokens[4],
+			pkColumn: tokens[5],
+			cardinality: [tokens[2], tokens[3]]
+			};
+		}
+	%}
 
 
+#ignora espaços
 _ -> %WHITESPACE:* {% () => null %}
 
 @{%
@@ -84,7 +93,7 @@ let lexer = moo.compile({
 	ZERO:			"0"
     ONE:            "1",
     N:              "N",
-    IDENTIFIER:     /[a-zA-Z_]\w*/,
+    IDENTIFIER:      /[\p{L}_][\p{L}\p{N}_]*/u,
     STRING:         { match: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, value: x => x.slice(1,-1) },
     NUMBER:         /[0-9]+/,
     LBRACE:         "{",
