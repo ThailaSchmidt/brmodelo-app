@@ -602,9 +602,6 @@ const logicService = ($rootScope, ModelAPI, LogicFactory, LogicConversorService)
 			console.log("Code editor não está definido!");
 			return;
 		}
-		if (ls.codeEditor) {
-			reverseToDSL(ls.buildTablesJson(), ls.codeEditor);
-		}
 
 		const tablesMap = ls.buildTablesJson();
 

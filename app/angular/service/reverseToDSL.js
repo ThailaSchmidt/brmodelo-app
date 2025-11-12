@@ -148,16 +148,6 @@ export function reverseToDSL(model, codeEditor) {
     }).join("\n\n");
 
 
-    // antes de atualizar o editor
-	const cursor = codeEditor.getCursor(); // guarda posição atual
-	const scroll = codeEditor.getScrollInfo(); // guarda rolagem
-
-	// atualiza o código
+    // atualiza o codemirror
 	codeEditor.setValue(dslCode);
-
-	// restaura cursor e rolagem após pequeno atraso
-	setTimeout(() => {
-	codeEditor.setCursor(cursor);
-	codeEditor.scrollTo(scroll.left, scroll.top);
-	}, 0);
 }
