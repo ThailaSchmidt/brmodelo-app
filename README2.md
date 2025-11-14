@@ -3,7 +3,7 @@
 Em cada terminal faça: 
 
 1. Inicie o MongoDB:
-& "C:\Program Files\MongoDB\server\bin\mongod.exe" --dbpath "C:\Users\thail\mongodb-data"
+& "C:\Program Files\MongoDB\server\bin\mongod.exe" --dbpath "C:\Users\SEU_USUARIO\mongodb-data"
 
 2. Inicie o servidor Node.js:
 set NODE_ENV=development
