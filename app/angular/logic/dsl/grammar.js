@@ -19,8 +19,6 @@ let lexer = moo.compile({
     CHECK:          "check",
     ARROWR: { match: /->|>/ },
 	ARROWL: { match: /<-|</ },
-	ZERO:			"0",
-    ONE:            "1",
     IDENTIFIER:      /[\p{L}_][\p{L}\p{N}_]*/u,
     STRING:         { match: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, value: x => x.slice(1,-1) },
     NUMBER:         /[0-9]+/,
@@ -76,26 +74,53 @@ var grammar = {
     {"name": "constraint_list$ebnf$1$subexpression$1", "symbols": ["_", (lexer.has("COMMA") ? {type: "COMMA"} : COMMA), "_", "constraint_item"]},
     {"name": "constraint_list$ebnf$1", "symbols": ["constraint_list$ebnf$1", "constraint_list$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "constraint_list", "symbols": ["constraint_item", "constraint_list$ebnf$1"], "postprocess": ([first, rest]) => [first, ...rest.map(r => r[3])]},
+    {"name": "value", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([v]) => v.value},
+    {"name": "value", "symbols": [(lexer.has("STRING") ? {type: "STRING"} : STRING)], "postprocess": ([v]) => v.value},
+    {"name": "value", "symbols": [(lexer.has("IDENTIFIER") ? {type: "IDENTIFIER"} : IDENTIFIER)], "postprocess": ([v]) => v.value},
     {"name": "constraint_item", "symbols": [(lexer.has("PK") ? {type: "PK"} : PK)], "postprocess": () => ({ type: "pk" })},
     {"name": "constraint_item", "symbols": [(lexer.has("FK") ? {type: "FK"} : FK), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR), "_", "identifier"], "postprocess": ([,,,, name]) => ({ type: "fk", ref: name.text ?? name.value ?? name })},
     {"name": "constraint_item", "symbols": [(lexer.has("UNIQUE") ? {type: "UNIQUE"} : UNIQUE)], "postprocess": () => ({ type: "unique" })},
     {"name": "constraint_item", "symbols": [(lexer.has("NOT_NULL") ? {type: "NOT_NULL"} : NOT_NULL)], "postprocess": () => ({ type: "not_null" })},
     {"name": "constraint_item", "symbols": [(lexer.has("AUTO_INCREMENT") ? {type: "AUTO_INCREMENT"} : AUTO_INCREMENT)], "postprocess": () => ({ type: "auto_increment" })},
-    {"name": "constraint_item", "symbols": [(lexer.has("DEFAULT") ? {type: "DEFAULT"} : DEFAULT), "_", "default_value"], "postprocess": ([,, value]) => ({ type: "default", value })},
-    {"name": "constraint_item", "symbols": [(lexer.has("CHECK") ? {type: "CHECK"} : CHECK), "_", (lexer.has("IDENTIFIER") ? {type: "IDENTIFIER"} : IDENTIFIER)], "postprocess": ([,, value]) => ({ type: "check", value: value.value })},
-    {"name": "default_value", "symbols": ["identifier"], "postprocess": id},
+    {"name": "constraint_item", "symbols": [(lexer.has("DEFAULT") ? {type: "DEFAULT"} : DEFAULT), "_", "value"], "postprocess": ([,, value]) => ({ type: "default", value })},
+    {"name": "constraint_item", "symbols": [(lexer.has("CHECK") ? {type: "CHECK"} : CHECK), "_", "value"], "postprocess": ([,, value]) => ({ type: "check", value })},
     {"name": "identifier", "symbols": [(lexer.has("IDENTIFIER") ? {type: "IDENTIFIER"} : IDENTIFIER)], "postprocess": ([value]) => value.value},
     {"name": "identifier", "symbols": [(lexer.has("STRING") ? {type: "STRING"} : STRING)], "postprocess": ([value]) => value.value},
     {"name": "identifier", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([value]) => value.value},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "0-0>"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "0-1>"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "1-0>"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess": () => "1-1>"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO)], "postprocess": () => "<0-0"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "<0-1"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ZERO") ? {type: "ZERO"} : ZERO)], "postprocess": () => "<1-0"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "<1-1"},
-    {"name": "cardinality_arrow", "symbols": [(lexer.has("ONE") ? {type: "ONE"} : ONE), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("ONE") ? {type: "ONE"} : ONE)], "postprocess": () => "1-1"},
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER), "_", (lexer.has("ARROWR") ? {type: "ARROWR"} : ARROWR)], "postprocess":  (data) => {
+            // procura os dois números no array
+            const nums = data.flat().filter(x => x && (x.type === "NUMBER" || typeof x.value === "string" && /^\d+$/.test(x.value) || typeof x === "string" && /^\d+$/.test(x)));
+            const aRaw = nums[0];
+            const bRaw = nums[1];
+            const av = aRaw?.text ?? aRaw?.value ?? aRaw;
+            const bv = bRaw?.text ?? bRaw?.value ?? bRaw;
+
+            if (!["0","1"].includes(String(av))) throw new Error("Cardinalidade inválida");
+            if (!["0","1"].includes(String(bv))) throw new Error("Cardinalidade inválida");
+            return `${av}-${bv}>`;
+        } },
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("ARROWL") ? {type: "ARROWL"} : ARROWL), "_", (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess":  (data) => {
+            const nums = data.flat().filter(x => x && (x.type === "NUMBER" || typeof x.value === "string" && /^\d+$/.test(x.value) || typeof x === "string" && /^\d+$/.test(x)));
+            const aRaw = nums[0];
+            const bRaw = nums[1];
+            const av = aRaw?.text ?? aRaw?.value ?? aRaw;
+            const bv = bRaw?.text ?? bRaw?.value ?? bRaw;
+
+            if (!["0","1"].includes(String(av))) throw new Error("Cardinalidade inválida");
+            if (!["0","1"].includes(String(bv))) throw new Error("Cardinalidade inválida");
+            return `<${av}-${bv}`;
+        } },
+    {"name": "cardinality_arrow", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER), "_", (lexer.has("HIFEN") ? {type: "HIFEN"} : HIFEN), "_", (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess":  (data) => {
+            const nums = data.flat().filter(x => x && (x.type === "NUMBER" || typeof x.value === "string" && /^\d+$/.test(x.value) || typeof x === "string" && /^\d+$/.test(x)));
+            const aRaw = nums[0];
+            const bRaw = nums[1];
+            const av = aRaw?.text ?? aRaw?.value ?? aRaw;
+            const bv = bRaw?.text ?? bRaw?.value ?? bRaw;
+
+            if (!["0","1"].includes(String(av))) throw new Error("Cardinalidade inválida");
+            if (!["0","1"].includes(String(bv))) throw new Error("Cardinalidade inválida");
+            return `${av}-${bv}`;
+        } },
     {"name": "relation_command", "symbols": [(lexer.has("RELATION") ? {type: "RELATION"} : RELATION), "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", "cardinality_arrow", "_", "identifier", "_", (lexer.has("LPAREN") ? {type: "LPAREN"} : LPAREN), "identifier", (lexer.has("RPAREN") ? {type: "RPAREN"} : RPAREN), "_", (lexer.has("SEMICOLON") ? {type: "SEMICOLON"} : SEMICOLON)], "postprocess":
         ([, , table1, , , fk, , , card, , table2, , , pk]) => ({
             type: "relation",

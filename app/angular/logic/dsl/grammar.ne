@@ -45,17 +45,45 @@ identifier -> %IDENTIFIER {% ([value]) => value.value %}
            | %STRING     {% ([value]) => value.value %}
            | %NUMBER     {% ([value]) => value.value %}
 
-# Cardinality atualizada
+# Cardinality
 cardinality_arrow ->
-      %ZERO _ %HIFEN _ %ZERO _ %ARROWR {% () => "0-0>" %}
-    | %ZERO _ %HIFEN _ %ONE  _ %ARROWR {% () => "0-1>" %}
-    | %ONE  _ %HIFEN _ %ZERO _ %ARROWR {% () => "1-0>" %}
-    | %ONE  _ %HIFEN _ %ONE  _ %ARROWR {% () => "1-1>" %}
-	| %ARROWL _ %ZERO _ %HIFEN _ %ZERO {% () => "<0-0" %}
-    | %ARROWL _ %ZERO _ %HIFEN _ %ONE  {% () => "<0-1" %}
-    | %ARROWL _ %ONE  _ %HIFEN _ %ZERO {% () => "<1-0" %}
-    | %ARROWL _ %ONE  _ %HIFEN _ %ONE  {% () => "<1-1" %}
-	| %ONE  _ %HIFEN _ %ONE           {% () => "1-1" %}
+  %NUMBER _ %HIFEN _ %NUMBER _ %ARROWR
+    {% (data) => {
+        // procura os dois números no array
+        const nums = data.flat().filter(x => x && (x.type === "NUMBER" || typeof x.value === "string" && /^\d+$/.test(x.value) || typeof x === "string" && /^\d+$/.test(x)));
+        const aRaw = nums[0];
+        const bRaw = nums[1];
+        const av = aRaw?.text ?? aRaw?.value ?? aRaw;
+        const bv = bRaw?.text ?? bRaw?.value ?? bRaw;
+
+        if (!["0","1"].includes(String(av))) throw new Error("Cardinalidade inválida");
+        if (!["0","1"].includes(String(bv))) throw new Error("Cardinalidade inválida");
+        return `${av}-${bv}>`;
+    } %}
+| %ARROWL _ %NUMBER _ %HIFEN _ %NUMBER
+    {% (data) => {
+        const nums = data.flat().filter(x => x && (x.type === "NUMBER" || typeof x.value === "string" && /^\d+$/.test(x.value) || typeof x === "string" && /^\d+$/.test(x)));
+        const aRaw = nums[0];
+        const bRaw = nums[1];
+        const av = aRaw?.text ?? aRaw?.value ?? aRaw;
+        const bv = bRaw?.text ?? bRaw?.value ?? bRaw;
+
+        if (!["0","1"].includes(String(av))) throw new Error("Cardinalidade inválida");
+        if (!["0","1"].includes(String(bv))) throw new Error("Cardinalidade inválida");
+        return `<${av}-${bv}`;
+    } %}
+| %NUMBER _ %HIFEN _ %NUMBER
+    {% (data) => {
+        const nums = data.flat().filter(x => x && (x.type === "NUMBER" || typeof x.value === "string" && /^\d+$/.test(x.value) || typeof x === "string" && /^\d+$/.test(x)));
+        const aRaw = nums[0];
+        const bRaw = nums[1];
+        const av = aRaw?.text ?? aRaw?.value ?? aRaw;
+        const bv = bRaw?.text ?? bRaw?.value ?? bRaw;
+
+        if (!["0","1"].includes(String(av))) throw new Error("Cardinalidade inválida");
+        if (!["0","1"].includes(String(bv))) throw new Error("Cardinalidade inválida");
+        return `${av}-${bv}`;
+    } %}
 
 # RELATION COMMAND (aponta para FK)
 relation_command ->
@@ -94,8 +122,6 @@ let lexer = moo.compile({
     CHECK:          "check",
     ARROWR: { match: /->|>/ },
 	ARROWL: { match: /<-|</ },
-	ZERO:			"0",
-    ONE:            "1",
     IDENTIFIER:      /[\p{L}_][\p{L}\p{N}_]*/u,
     STRING:         { match: /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/, value: x => x.slice(1,-1) },
     NUMBER:         /[0-9]+/,
