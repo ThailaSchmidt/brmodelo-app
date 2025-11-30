@@ -31,6 +31,8 @@ class DiagramGeneratorLogical {
 
 		const columns = (node.columns || []).map((col, idx) => {
 			const colOptions = col.options ?? [];
+			const defaultOpt = colOptions.find(o => o.startsWith("default "));
+			const checkOpt   = colOptions.find(o => o.startsWith("check "));
 			return {
 				tableOrigin: { idOrigin: null },
 				editable: col.editable ?? true,
@@ -41,8 +43,10 @@ class DiagramGeneratorLogical {
 				FK: colOptions.some(o => o.startsWith('fk')),
 				fkId: col.fkRef,
 				UNIQUE: colOptions.includes('unique'),
-				NOT_NULL: colOptions.includes('not null'),
-				AUTO_INCREMENT: colOptions.includes('autoincrement') || colOptions.includes('ai'),
+				NOT_NULL: colOptions.includes('not_null'),
+				AUTO_INCREMENT: colOptions.includes('auto_increment') || colOptions.includes('ai'),
+				defaultValue: defaultOpt ? defaultOpt.replace(/^default\s+/, "").trim(): "",
+				check: checkOpt ? checkOpt.replace(/^check\s+/, "").trim(): "",
 				options: colOptions
 			};
 

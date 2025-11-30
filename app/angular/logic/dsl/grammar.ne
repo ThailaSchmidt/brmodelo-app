@@ -29,13 +29,17 @@ constraints -> %LBRACK _ constraint_list _ %RBRACK
 constraint_list -> constraint_item (_ %COMMA _ constraint_item):*
     {% ([first, rest]) => [first, ...rest.map(r => r[3])] %}
 
+value -> %NUMBER       {% ([v]) => v.value %}
+      | %STRING        {% ([v]) => v.value %}
+      | %IDENTIFIER    {% ([v]) => v.value %}
+
 constraint_item -> %PK               {% () => ({ type: "pk" }) %}
                  | %FK _ %ARROWR _ identifier {% ([,, name]) => ({ type: "fk", ref: name }) %}
                  | %UNIQUE            {% () => ({ type: "unique" }) %}
                  | %NOT_NULL          {% () => ({ type: "not_null" }) %}
                  | %AUTO_INCREMENT    {% () => ({ type: "auto_increment" }) %}
-                 | %DEFAULT _ %IDENTIFIER   {% ([,, value]) => ({ type: "default", value: value.value }) %}
-                 | %CHECK _ %IDENTIFIER     {% ([,, value]) => ({ type: "check", value: value.value }) %}
+                 | %DEFAULT _ value   {% ([,, value]) => ({ type: "default", value }) %}
+				 | %CHECK _ value     {% ([,, value]) => ({ type: "check", value }) %}
 
 identifier -> %IDENTIFIER {% ([value]) => value.value %}
            | %STRING     {% ([value]) => value.value %}

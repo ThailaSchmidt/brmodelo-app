@@ -58,7 +58,7 @@ export default class SemanticInterpreter {
 			const columnObj = {
 				name: col.name,
 				colType: col.type || "int",
-				options: (col.constraints ?? []).map(c => c.type),
+				options: (col.constraints ?? []).map(c => c.value ? `${c.type} ${c.value}` : c.type),
 				fkRef
 			};
 
@@ -77,19 +77,20 @@ export default class SemanticInterpreter {
 
 
     _checkColumn(col) {
-        const validTypes = ["int", "varchar", "char", "float", "date"];
-        if (!validTypes.includes(col.colType)) {
-            throw Error(`Invalid type '${col.colType}' for column '${col.name}'`);
-        }
-        for (const opt of col.options) {
-            if (opt.startsWith("default") && opt.split(" ").length < 2) {
-                throw Error(`Default value missing for column '${col.name}'`);
-            }
-            if (opt.startsWith("check") && opt.split(" ").length < 2) {
-                throw Error(`Check condition missing for column '${col.name}'`);
-            }
-        }
-    }
+		const validTypes = ["int", "varchar", "char", "float", "date"];
+		if (!validTypes.includes(col.colType)) {
+			throw Error(`Invalid type '${col.colType}' for column '${col.name}'`);
+		}
+
+		for (const opt of col.options) {
+			if (opt.type === "default" && (opt.value === undefined || opt.value === null || opt.value === "")) {
+				throw Error(`Default value missing for column '${col.name}'`);
+			}
+			if (opt.type === "check" && (opt.value === undefined || opt.value === null || opt.value === "")) {
+				throw Error(`Check condition missing for column '${col.name}'`);
+			}
+		}
+	}
 
 	_checkRelation(node) {
 		// Verifica se a relação já existe
